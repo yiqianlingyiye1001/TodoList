@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todos</title>
+    <style>
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        li {
+            cursor: pointer;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Todos</h1>
+    <form name="form">
+        <input type="text" name="input" placeholder="输入新任务...">
+        <ul class="todos" name="todos">
+        </ul>
+    </form>
+    <script>
+        const form = document.querySelector('form[name="form"]');
+        const input = document.querySelector('input[name="input"]');
+        const todosList = document.querySelector('ul[name="todos"]');
+
+        // 从数据库获取old task
+        document.addEventListener('DOMContentLoaded', async (e) => {
+            try {
+                const response = await fetch('api.php');
+                const todos = await response.json();
+
+                todos.forEach(todo => {
+                    renderTodo(todo);
+                });
+            } catch (error) {
+                console.error('初始化失败', error);
+                alert('初始化失败');
+            }
+        });
+        
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await addTodo();
+        });
+
+      //添加el
+        function renderTodo(todo) {
+            const todoEl = document.createElement('li');
+            todoEl.textContent = todo.text;
+            // dataset属性名
+            todoEl.dataset.id = todo.id;
+
+            if (todo.completed) {
+                todoEl.classList.add('completed');
+            }
+            // 修复变量名错误
+            todosList.appendChild(todoEl);
+
+            // 点击切换完成状态
+            todoEl.addEventListener('click', async (e) => {
+                await toggleTodo(todo.id);
+                todoEl.classList.toggle('completed');
+            });
+
+            // 右键删除
+            todoEl.addEventListener('contextmenu', async (e) => {
+                e.preventDefault();
+                await deleteTodo(todo.id);
+                todoEl.remove();
+            });
+        }
+
+        // 添加任务
+        async function addTodo() {
+            const taskText = input.value.trim();
+            if (!taskText) return;
+
+            try {
+                const response = await fetch('api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: taskText })
+                });
+
+                if (response.ok) {
+                    const newTodo = await response.json();
+                    // 
+                    renderTodo(newTodo);
+                    input.value = '';
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '添加失败');
+                }
+            } catch (error) {
+                console.error('添加失败', error);
+                alert(`添加失败: ${error.message}`);
+                input.value = '';
+            }
+        }
+
+        // 切换任务状态
+        async function toggleTodo(id) {
+            try {
+                const response = await fetch(`api.php?id=${id}`, {
+                    method: 'PUT'
+                });
+
+                if (!response.ok) {
+                    throw new Error('更新状态失败');
+                }
+            } catch (error) {
+                console.error('更新状态失败', error);
+                alert('更新状态失败');
+            }
+        }
+
+        // 修复函数作用域问题，移到外部
+        async function deleteTodo(id) {
+            try {
+                const response = await fetch(`api.php?id=${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    throw new Error('删除失败');
+                }
+            } catch (error) {
+                console.error('删除失败', error);
+                alert('删除失败');
+            }
+        }
+
+    </script>
+</body>
+</html>

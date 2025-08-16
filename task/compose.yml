@@ -1,0 +1,18 @@
+services:
+   web:
+     image: php:8.3-mysql
+     container_name: OJtodo-web-php
+     build: .
+     ports:
+       - "80:80"
+     volumes:
+       - "./tasktodo:/var/www/html"
+   db:
+     image: mariadb:latest
+     container_name: OJtodo-db-php
+     ports:
+      - "3306:3306"
+     #volumes:
+     # - "./tasktodo:/var/lib/mysql:Z"
+     environment:
+      - MARIADB_ROOT_PASSWORD=654321
